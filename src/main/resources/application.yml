@@ -1,0 +1,91 @@
+server:
+  port: '8888'
+
+spring:
+  application:
+    name: configserver-qt
+  profiles:
+    active: jdbc
+
+############################################
+#                DATASOURCE                #
+############################################
+  datasource:
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    username: sa
+    hikari:
+      maximum-pool-size: '10'
+      connection-timeout: '5000'
+    url: jdbc:sqlserver://host.docker.internal:1433;databaseName=configserver-db;encrypt=false
+    password: mynewtest!C11
+  jpa:
+    properties:
+      hibernate:
+        format_sql: 'true'
+    show-sql: 'true'
+  cloud:
+    config:
+      server:
+        jdbc:
+          sql: select prop_key, value from properties where application=? and application_profile=?
+            and (label = ? or label is null)
+
+############################################
+#                 ACTUATOR                 #
+############################################
+management:
+  endpoints:
+    web:
+      exposure:
+        include: env, health, configprops, health-path, info, loggers, loggers-name,
+          threaddump, heapdump, metrics, scheduledtasks, refresh, beans
+      cors:
+        allowed-origins: '*'
+        allowed-methods: OPTIONS, GET, POST
+        allowed-headers: '*'
+  endpoint:
+    refresh:
+      enabled: 'true'
+    configprops:
+      show-values: ALWAYS
+    env:
+      show-values: ALWAYS
+    loggers:
+      enabled: 'true'
+    health:
+      probes:
+        enabled: 'true'
+      show-details: always
+    httptrace:
+      enabled: 'true'
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  info:
+    env:
+      enabled: 'false'
+  httpexchanges:
+    recording:
+      include: RESPONSE_HEADERS
+  health:
+    livenessState:
+      enabled: 'true'
+    readinessState:
+      enabled: 'true'
+
+############################################
+#                  LOGGERS                 #
+############################################
+logging:
+  level:
+    org:
+      springframework:
+        cloud:
+          config:
+            server: INFO
+          endpoint: INFO
+        boot:
+          actuate: DEBUG
+        core:
+          io: DEBUG
+
