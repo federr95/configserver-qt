@@ -1,0 +1,23 @@
+############################################
+#                DATASOURCE                #
+############################################
+datasource:
+  driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+  hikari:
+    maximum-pool-size: '10'
+    connection-timeout: '5000'
+  url: jdbc:sqlserver://ramos-sql-test.e6d3eb1a7748.database.windows.net:1433;databaseName=trenord-t
+  username: ${SQL_SERVER_USERNAME}
+  password: ${SQL_SERVER_PASSWORD}
+
+jpa:
+  properties:
+    hibernate:
+      format_sql: 'true'
+  show-sql: 'true'
+cloud:
+  config:
+    server:
+      jdbc:
+        sql: select prop_key, value from properties where application=? and application_profile=?
+          and (label = ? or label is null)
