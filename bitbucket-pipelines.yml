@@ -1,71 +1,43 @@
 image: maven:3.9.9-eclipse-temurin-21-alpine
 
 steps:
-    - step: &build
-        name: build
-        caches:
-            - maven
-        script:
-#            - mkdir -p $HOME/.m2/repository/it/nordcom/common-library/0.0.1-SNAPSHOT
-#            - cp common-library/pom.xml $HOME/.m2/repository/it/nordcom/common-library/0.0.1-SNAPSHOT/common-library-0.0.1-SNAPSHOT.pom
-#            - mkdir -p $HOME/.m2/repository/it/nordcom/common/1.0.0-SNAPSHOT
-#            - cp common-library/common/target/common-1.0.0-SNAPSHOT.jar $HOME/.m2/repository/it/nordcom/common/1.0.0-SNAPSHOT/common-1.0.0-SNAPSHOT.jar
-#            - cp common-library/common/pom.xml $HOME/.m2/repository/it/nordcom/common/1.0.0-SNAPSHOT/common-1.0.0-SNAPSHOT.pom
-#            - mkdir -p $HOME/.m2/repository/it/nordcom/logger/1.0.0-SNAPSHOT
-#            - cp common-library/logger/target/logger-1.0.0-SNAPSHOT.jar $HOME/.m2/repository/it/nordcom/logger/1.0.0-SNAPSHOT/logger-1.0.0-SNAPSHOT.jar
-#            - cp common-library/logger/pom.xml $HOME/.m2/repository/it/nordcom/logger/1.0.0-SNAPSHOT/logger-1.0.0-SNAPSHOT.pom
-#            - mkdir -p $HOME/.m2/repository/it/nordcom/turni-cloner/1.0.0-SNAPSHOT
-#            - cp common-library/turni-cloner/target/turni-cloner-1.0.0-SNAPSHOT.jar $HOME/.m2/repository/it/nordcom/turni-cloner/1.0.0-SNAPSHOT/turni-cloner-1.0.0-SNAPSHOT.jar
-#            - cp common-library/turni-cloner/pom.xml $HOME/.m2/repository/it/nordcom/turni-cloner/1.0.0-SNAPSHOT/turni-cloner-1.0.0-SNAPSHOT.pom
-#            - mkdir -p $HOME/.m2/repository/it/nordcom/utility/1.0.0-SNAPSHOT
-#            - cp common-library/utility/target/utility-1.0.0-SNAPSHOT.jar $HOME/.m2/repository/it/nordcom/utility/1.0.0-SNAPSHOT/utility-1.0.0-SNAPSHOT.jar
-#            - cp common-library/utility/pom.xml $HOME/.m2/repository/it/nordcom/utility/1.0.0-SNAPSHOT/utility-1.0.0-SNAPSHOT.pom
-#            - mvn clean install -DskipTests
-        artifacts:
-            - target/*.jar
-    - step: &docker
-        name: docker
-        caches:
-            - docker
-        script:
-            - export DEPLOY_ENV=$BITBUCKET_BRANCH
-            - export IMAGE_TAG=$(date +%Y%m%d%H%M%S)
-            - docker build -t $DOCKER_REPOSITORY/configserver-qt-$DEPLOY_ENV-1.0.0-snapshot:$IMAGE_TAG .
-            - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD $DOCKER_REPOSITORY
-            - docker push $DOCKER_REPOSITORY/configserver-qt-$DEPLOY_ENV-1.0.0-snapshot:$IMAGE_TAG
-        services:
-            - docker
-    - step: &jar
-        name: download jar
-        script:
-            - export DEPLOY_ENV=$BITBUCKET_BRANCH
-            - apk update && apk add git
-            - git clone --single-branch --branch $DEPLOY_ENV https://x-token-auth:$BITBUCKET_TOKEN@bitbucket.org/nordc/common-library.git
-            - cd common-library
-            - mvn clean install -DskipTests
-        artifacts:
-#            - common-library/pom.xml
-#            - common-library/common/target/*.jar
-#            - common-library/common/pom.xml
-#            - common-library/logger/target/*.jar
-#            - common-library/logger/pom.xml
-#            - common-library/turni-cloner/target/*.jar
-#            - common-library/turni-cloner/pom.xml
-#            - common-library/utility/target/*.jar
-#            - common-library/utility/pom.xml
+  - step: &build
+      name: build
+      caches:
+        - maven
+      script:
+        - mvn clean package -DskipTests
+      artifacts:
+        - target/*.jar
+  - step: &docker
+      name: push docker
+      caches:
+        - docker
+      script:
+        - export DEPLOY_ENV=$BITBUCKET_BRANCH
+        - export IMAGE_TAG=$(date +%Y%m%d%H%M%S)
+        - docker build -t $DOCKER_REPOSITORY/configserver-qt-$DEPLOY_ENV-1.0.0:$IMAGE_TAG .
+        - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD $DOCKER_REPOSITORY
+        - docker push $DOCKER_REPOSITORY/configserver-qt-$DEPLOY_ENV-1.0.0:$IMAGE_TAG
+      services:
+        - docker
 pipelines:
-    pull-request:
-        '**':
-            - step: *build
-    branches:
-        main:
-            - step: *build
-            - step: *docker
-        develop:
-            - step: *jar
-            - step: *build
-            - step: *docker
-        staging:
-            - step: *jar
-            - step: *build
-            - step: *docker
+  pull-request:
+    '**':
+      - step: *build
+  branches:
+    main:
+      - step: *build
+      - step:
+          <<: *docker
+          deployment: Production
+    develop:
+      - step: *build
+      - step:
+          <<: *docker
+          deployment: Staging
+    staging:
+      - step: *build
+      - step:
+          <<: *docker
+          deployment: Staging
