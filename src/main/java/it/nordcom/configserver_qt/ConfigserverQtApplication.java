@@ -8,6 +8,8 @@ import org.springframework.cloud.config.server.EnableConfigServer;
 @EnableConfigServer
 public class ConfigserverQtApplication {
 
+    // new line for test commit
+
 	public static void main(String[] args) {
 		SpringApplication.run(ConfigserverQtApplication.class, args);
 	}
